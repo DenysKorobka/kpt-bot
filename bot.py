@@ -965,24 +965,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             user["day_start_times"][str(day_num)] = datetime.now().isoformat()
             save_data(db)
 
-        # Гіфки для кожного дня
-        DAY_GIFS = {
-            1:  "https://media.tenor.com/x8v1oNUOmg4AAAAC/lockdown-2020-emotional-eating.gif",
-            2:  "https://media.tenor.com/NnEOFHFbFzoAAAAC/cat-happy-dance.gif",
-            3:  "https://media.tenor.com/fbnzQqeGFUEAAAAC/dog-treadmill-lazy-workout.gif",
-            4:  "https://media.tenor.com/ZFuI8OKqn6QAAAAC/stuffed-full-food-coma-cat.gif",
-            5:  "https://media.tenor.com/V2sSQfaZlGQAAAAC/cat-fat.gif",
-            6:  "https://media.tenor.com/IZnrO6_0x6MAAAAC/champagne-cookie-monster.gif",
-            7:  "https://media.tenor.com/6gMJlHAzProAAAAC/well-done-congratulations.gif",
-            8:  "https://media.tenor.com/Wm5o2yjMf90AAAAC/healthy-food.gif",
-            9:  "https://media.tenor.com/x9RDelSLPEkAAAAC/stickergiant-self-love.gif",
-            10: "https://media.tenor.com/Mxws7YDlsY4AAAAC/all-yours-chill-bro.gif",
-            11: "https://media.tenor.com/9TsO7u2NUZAAAAAC/sugar-sweet.gif",
-            12: "https://media.tenor.com/oKCz6GgFJ9AAAAAC/cat-gato-michi-triste-sad.gif",
-            13: "https://media.tenor.com/o2AjFGJLPIkAAAAC/eating-your-feelings.gif",
-            14: "https://media.tenor.com/m460MExHIpkAAAAC/funny-animals-monkey-fabulous.gif",
-        }
-
         congrats = (
             "🎉 *Вітаємо з завершенням усієї програми!*\n\n"
             "Ти пройшов(ла) всі 14 днів! Це справжнє досягнення! 🏆\n\n"
@@ -1005,18 +987,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown",
             reply_markup=after_complete_keyboard(day_num)
         )
-
-        # Надсилаємо гіфку окремим повідомленням
-        gif_url = DAY_GIFS.get(day_num)
-        if gif_url:
-            try:
-                await context.bot.send_animation(
-                    chat_id=query.message.chat_id,
-                    animation=gif_url,
-                    caption="😄 Молодець!"
-                )
-            except Exception:
-                pass
 
 
 # ══════════════════════════════════════════════════════════════════════════════
