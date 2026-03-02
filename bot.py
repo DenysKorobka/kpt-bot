@@ -860,11 +860,14 @@ async def cmd_progress(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ══════════════════════════════════════════════════════════════════════════════
 
 async def smart_edit(query, text, reply_markup, parse_mode="Markdown"):
-    """Редагує повідомлення незалежно від того фото це чи текст."""
+    """Якщо поточне повідомлення — фото, видаляємо його і надсилаємо чистий текст.
+    Якщо вже текст — просто редагуємо."""
     try:
         if query.message.photo or query.message.document:
-            await query.edit_message_caption(
-                caption=text,
+            # Видаляємо фото-повідомлення і надсилаємо чистий текст
+            await query.message.delete()
+            await query.message.chat.send_message(
+                text=text,
                 parse_mode=parse_mode,
                 reply_markup=reply_markup
             )
@@ -875,31 +878,53 @@ async def smart_edit(query, text, reply_markup, parse_mode="Markdown"):
                 reply_markup=reply_markup
             )
     except Exception:
-        await query.message.reply_text(
-            text,
-            parse_mode=parse_mode,
-            reply_markup=reply_markup
-        )
+        try:
+            await query.edit_message_text(
+                text,
+                parse_mode=parse_mode,
+                reply_markup=reply_markup
+            )
+        except Exception:
+            await query.message.reply_text(
+                text,
+                parse_mode=parse_mode,
+                reply_markup=reply_markup
+            )
 
 
 async def section_edit(query, day_num, section, text, reply_markup, parse_mode="Markdown"):
-    """Редагує розділ дня — якщо є картинка для розділу, замінює її."""
+    """Якщо є картинка для розділу — показуємо з фото (замінюємо або надсилаємо нове).
+    Якщо немає — видаляємо фото і показуємо чистий текст."""
     from telegram import InputMediaPhoto
     photo_key = (day_num, section)
+
     if photo_key in SECTION_PHOTOS:
+        # Є картинка для цього розділу
         try:
-            await query.edit_message_media(
-                media=InputMediaPhoto(
-                    media=SECTION_PHOTOS[photo_key],
+            if query.message.photo or query.message.document:
+                # Вже фото — замінюємо медіа
+                await query.edit_message_media(
+                    media=InputMediaPhoto(
+                        media=SECTION_PHOTOS[photo_key],
+                        caption=text,
+                        parse_mode=parse_mode
+                    ),
+                    reply_markup=reply_markup
+                )
+            else:
+                # Поточне текстове — видаляємо і надсилаємо фото
+                await query.message.delete()
+                await query.message.chat.send_photo(
+                    photo=SECTION_PHOTOS[photo_key],
                     caption=text,
-                    parse_mode=parse_mode
-                ),
-                reply_markup=reply_markup
-            )
+                    parse_mode=parse_mode,
+                    reply_markup=reply_markup
+                )
             return
         except Exception:
             pass
-    # Немає картинки або не вдалось — просто редагуємо текст/підпис
+
+    # Немає картинки — видаляємо фото (якщо є) і показуємо чистий текст
     await smart_edit(query, text, reply_markup, parse_mode)
 
 
