@@ -25,23 +25,27 @@ logger = logging.getLogger(__name__)
 
 # ─── Фото для кожного дня (з GitHub) ─────────────────────────────────────────
 BASE_URL = "https://raw.githubusercontent.com/DenysKorobka/kpt-bot/main"
+
+# Картинка на ПОЧАТКУ дня (з теорії)
 DAY_PHOTOS = {
-    "welcome":  f"{BASE_URL}/welcome.jpg",
-    "about":    f"{BASE_URL}/abc_model.png",
-    1:  f"{BASE_URL}/day1_cortisol.jpg",
-    2:  f"{BASE_URL}/day2_hormones.png",
-    3:  f"{BASE_URL}/day3_movement.png",
-    4:  f"{BASE_URL}/day1_food.jpg",
-    5:  f"{BASE_URL}/day5_portion.png",
-    6:  f"{BASE_URL}/day1_sleep.jpg",
-    7:  f"{BASE_URL}/day7_progress.jpg",
-    8:  f"{BASE_URL}/day2_tasks.png",
-    9:  f"{BASE_URL}/day1_cry.jpg",
-    10: f"{BASE_URL}/day1_meme.jpg",
-    11: f"{BASE_URL}/day1_bug_exercise.jpg",
-    12: f"{BASE_URL}/day2_tasks.png",
-    13: f"{BASE_URL}/welcome.jpg",
-    14: f"{BASE_URL}/day7_progress.jpg",
+    "welcome":  f"{BASE_URL}/welcome.jpg",      # Обкладинка курсу
+    "about":    f"{BASE_URL}/abc_model.png",    # ABC модель
+    1:  f"{BASE_URL}/day1_belly.jpg",           # Кортизоловий живіт
+    2:  f"{BASE_URL}/day2_hormones.png",        # Гормони радості
+    3:  f"{BASE_URL}/day3_movement.png",        # Рух
+    4:  f"{BASE_URL}/day1_sleep.jpg",           # Сон/насичення
+    5:  f"{BASE_URL}/day5_leptin.png",          # Лептин — порція
+    6:  f"{BASE_URL}/day6_timing.jpg",          # Вчасне харчування
+    # Дні 7-14 без картинки на початку (немає в документі)
+}
+
+# Картинка ПІСЛЯ завершення дня (мемчик)
+DAY_COMPLETE_PHOTOS = {
+    1:  f"{BASE_URL}/day1_cortisol.jpg",        # Кортизол — мемчик
+    2:  f"{BASE_URL}/day2_tasks.png",           # Завдання день 2
+    3:  f"{BASE_URL}/day3_movement.png",        # Рух
+    7:  f"{BASE_URL}/day7_progress.jpg",        # Графік прогресу
+    14: f"{BASE_URL}/day7_progress.jpg",        # Прогрес — фінал
 }
 
 # ─── Токен бота (береться зі змінних середовища) ─────────────────────────────
@@ -1058,6 +1062,16 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown",
             reply_markup=after_complete_keyboard(day_num)
         )
+
+        # Мемчик після завершення дня (як в оригінальному документі)
+        if day_num in DAY_COMPLETE_PHOTOS:
+            try:
+                await context.bot.send_photo(
+                    chat_id=query.message.chat_id,
+                    photo=DAY_COMPLETE_PHOTOS[day_num]
+                )
+            except Exception:
+                pass
 
 
 # ══════════════════════════════════════════════════════════════════════════════
