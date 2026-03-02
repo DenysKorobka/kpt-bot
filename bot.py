@@ -907,21 +907,30 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         day = DAYS[day_num]
         completed_mark = "✅ " if day_num in user.get("completed_days", []) else ""
-        
-        # Надсилаємо фото дня
+        caption = (
+            f"{completed_mark}*{day['title']}*\n\n"
+            f"🎯 *Мета дня:*\n{day['goal']}\n\n"
+            f"Оберіть розділ нижче 👇"
+        )
+
+        # Якщо є фото — відправляємо фото з підписом і кнопками, старе повідомлення видаляємо
         if day_num in DAY_PHOTOS:
             try:
+                await query.message.delete()
                 await context.bot.send_photo(
                     chat_id=query.message.chat_id,
-                    photo=DAY_PHOTOS[day_num]
+                    photo=DAY_PHOTOS[day_num],
+                    caption=caption,
+                    parse_mode="Markdown",
+                    reply_markup=day_keyboard(day_num)
                 )
+                return
             except Exception:
                 pass
 
+        # Якщо фото немає або не вдалось — просто текст
         await query.edit_message_text(
-            f"{completed_mark}*{day['title']}*\n\n"
-            f"🎯 *Мета дня:*\n{day['goal']}\n\n"
-            f"Оберіть розділ нижче 👇",
+            caption,
             parse_mode="Markdown",
             reply_markup=day_keyboard(day_num)
         )
