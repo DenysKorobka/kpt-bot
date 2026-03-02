@@ -841,6 +841,31 @@ async def cmd_progress(update: Update, context: ContextTypes.DEFAULT_TYPE):
 #  ОБРОБНИК CALLBACK-КНОПОК
 # ══════════════════════════════════════════════════════════════════════════════
 
+async def smart_edit(query, text, reply_markup, parse_mode="Markdown"):
+    """Редагує повідомлення незалежно від того фото це чи текст."""
+    try:
+        if query.message.photo or query.message.document:
+            # Це повідомлення з фото — редагуємо підпис
+            await query.edit_message_caption(
+                caption=text,
+                parse_mode=parse_mode,
+                reply_markup=reply_markup
+            )
+        else:
+            await query.edit_message_text(
+                text,
+                parse_mode=parse_mode,
+                reply_markup=reply_markup
+            )
+    except Exception:
+        # Якщо не вдалось — відправляємо нове повідомлення
+        await query.message.reply_text(
+            text,
+            parse_mode=parse_mode,
+            reply_markup=reply_markup
+        )
+
+
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -851,7 +876,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # ── Головне меню ──────────────────────────────────────────────────────────
     if data_cb == "main_menu":
-        await query.edit_message_text(
+        await smart_edit(query, 
             "🌿 *Головне меню*\n\nОберіть що хочете зробити:",
             parse_mode="Markdown",
             reply_markup=main_menu_keyboard()
@@ -859,7 +884,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # ── Про програму ─────────────────────────────────────────────────────────
     elif data_cb == "about":
-        await query.edit_message_text(
+        await smart_edit(query, 
             "🧠 *Як це працює? Модель ABC*\n\n"
             "У програмі використовується когнітивно-поведінкова терапія (КПТ).\n\n"
             "*A — Ситуація* → подія, що відбувається\n"
@@ -879,7 +904,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ── Список днів ───────────────────────────────────────────────────────────
     elif data_cb == "day_list":
         completed = user.get("completed_days", [])
-        await query.edit_message_text(
+        await smart_edit(query, 
             f"📋 *Всі 14 днів програми*\n\nЗавершено: {len(completed)}/14\n\n"
             "✅ — завершено  📅 — доступно  🔒 — поки недоступно",
             parse_mode="Markdown",
@@ -892,7 +917,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         accessible, reason = can_access_day(user, day_num)
 
         if not accessible:
-            await query.edit_message_text(
+            await smart_edit(query, 
                 f"🔒 *День {day_num} поки недоступний*\n\n{reason}",
                 parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup([[
@@ -929,7 +954,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 pass
 
         # Якщо фото немає або не вдалось — просто текст
-        await query.edit_message_text(
+        await smart_edit(query, 
             caption,
             parse_mode="Markdown",
             reply_markup=day_keyboard(day_num)
@@ -939,7 +964,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data_cb.startswith("theory_"):
         day_num = int(data_cb.split("_")[1])
         day = DAYS[day_num]
-        await query.edit_message_text(
+        await smart_edit(query, 
             day["theory"],
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([[
@@ -952,7 +977,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data_cb.startswith("abc_"):
         day_num = int(data_cb.split("_")[1])
         day = DAYS[day_num]
-        await query.edit_message_text(
+        await smart_edit(query, 
             day["abc"],
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([[
@@ -965,7 +990,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data_cb.startswith("exercises_"):
         day_num = int(data_cb.split("_")[1])
         day = DAYS[day_num]
-        await query.edit_message_text(
+        await smart_edit(query, 
             day["exercises"],
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([[
@@ -978,7 +1003,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data_cb.startswith("reflection_"):
         day_num = int(data_cb.split("_")[1])
         day = DAYS[day_num]
-        await query.edit_message_text(
+        await smart_edit(query, 
             day["reflection"],
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([[
@@ -991,7 +1016,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data_cb.startswith("quote_"):
         day_num = int(data_cb.split("_")[1])
         day = DAYS[day_num]
-        await query.edit_message_text(
+        await smart_edit(query, 
             f"💬 *Речення підтримки*\n\n{day['quote']}",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([[
@@ -1028,7 +1053,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Це час для практики і закріплення сьогоднішнього матеріалу 💪"
         )
 
-        await query.edit_message_text(
+        await smart_edit(query, 
             congrats,
             parse_mode="Markdown",
             reply_markup=after_complete_keyboard(day_num)
