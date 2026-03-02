@@ -22,6 +22,28 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
+# ─── Фото для кожного дня (з GitHub) ─────────────────────────────────────────
+BASE_URL = "https://raw.githubusercontent.com/DenysKorobka/kpt-bot/main"
+DAY_PHOTOS = {
+    "welcome":  f"{BASE_URL}/welcome.jpg",
+    "about":    f"{BASE_URL}/abc_model.png",
+    1:  f"{BASE_URL}/day1_cortisol.jpg",
+    2:  f"{BASE_URL}/day2_hormones.png",
+    3:  f"{BASE_URL}/day3_movement.png",
+    4:  f"{BASE_URL}/day1_food.jpg",
+    5:  f"{BASE_URL}/day5_portion.png",
+    6:  f"{BASE_URL}/day1_sleep.jpg",
+    7:  f"{BASE_URL}/day7_progress.jpg",
+    8:  f"{BASE_URL}/day2_tasks.png",
+    9:  f"{BASE_URL}/day1_cry.jpg",
+    10: f"{BASE_URL}/day1_meme.jpg",
+    11: f"{BASE_URL}/day1_bug_exercise.jpg",
+    12: f"{BASE_URL}/day2_tasks.png",
+    13: f"{BASE_URL}/welcome.jpg",
+    14: f"{BASE_URL}/day7_progress.jpg",
+}
+
 # ─── Токен бота (береться зі змінних середовища) ─────────────────────────────
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "ВАШ_ТОКЕН_ТУТ")
 
@@ -784,15 +806,19 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user["started_at"] = datetime.now().isoformat()
     save_data(data)
 
-    await update.message.reply_text(
-        "🌿 *КПТ-програма «Тренуй мислення — скидай вагу»*\n\n"
-        "Вітаємо на 14-денній програмі психології стрункості!\n\n"
-        "Попереду — два тижні нового погляду на харчування, рух і стосунки з тілом. "
-        "Жодних виснажливих дієт — лише кроки до мислення, яке підтримує здорові звички.\n\n"
-        "Ми навчимося помічати «пастки мислення» й замінювати їх на ті, що дають силу та свободу. 💚",
-        parse_mode="Markdown",
-        reply_markup=main_menu_keyboard()
-    )
+    try:
+        await update.message.reply_photo(
+            photo=DAY_PHOTOS["welcome"],
+            caption="🌿 *КПТ-програма «Тренуй мислення — скидай вагу»*\n\nВітаємо на 14-денній програмі психології стрункості!\n\nПопереду — два тижні нового погляду на харчування, рух і стосунки з тілом. Жодних виснажливих дієт — лише кроки до мислення, яке підтримує здорові звички.\n\nМи навчимося помічати «пастки мислення» й замінювати їх на ті, що дають силу та свободу. 💚",
+            parse_mode="Markdown",
+            reply_markup=main_menu_keyboard()
+        )
+    except Exception:
+        await update.message.reply_text(
+            "🌿 *КПТ-програма «Тренуй мислення — скидай вагу»*\n\nВітаємо на 14-денній програмі психології стрункості!\n\nПопереду — два тижні нового погляду на харчування, рух і стосунки з тілом. Жодних виснажливих дієт — лише кроки до мислення, яке підтримує здорові звички.\n\nМи навчимося помічати «пастки мислення» й замінювати їх на ті, що дають силу та свободу. 💚",
+            parse_mode="Markdown",
+            reply_markup=main_menu_keyboard()
+        )
 
 async def cmd_progress(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = load_data()
@@ -881,6 +907,17 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         day = DAYS[day_num]
         completed_mark = "✅ " if day_num in user.get("completed_days", []) else ""
+        
+        # Надсилаємо фото дня
+        if day_num in DAY_PHOTOS:
+            try:
+                await context.bot.send_photo(
+                    chat_id=query.message.chat_id,
+                    photo=DAY_PHOTOS[day_num]
+                )
+            except Exception:
+                pass
+
         await query.edit_message_text(
             f"{completed_mark}*{day['title']}*\n\n"
             f"🎯 *Мета дня:*\n{day['goal']}\n\n"
