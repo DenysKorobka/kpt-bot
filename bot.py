@@ -39,13 +39,27 @@ DAY_PHOTOS = {
     # Дні 7-14 без картинки на початку (немає в документі)
 }
 
-# Картинка ПІСЛЯ завершення дня (мемчик)
+# Картинка ПІСЛЯ завершення дня (мемчик — замінює картинку зверху)
 DAY_COMPLETE_PHOTOS = {
     1:  f"{BASE_URL}/day1_cortisol.jpg",        # Кортизол — мемчик
     2:  f"{BASE_URL}/day2_tasks.png",           # Завдання день 2
     3:  f"{BASE_URL}/day3_movement.png",        # Рух
     7:  f"{BASE_URL}/day7_progress.jpg",        # Графік прогресу
     14: f"{BASE_URL}/day7_progress.jpg",        # Прогрес — фінал
+}
+
+# Картинки для РОЗДІЛІВ всередині дня
+# Формат: (day_num, section) -> photo_url
+SECTION_PHOTOS = {
+    (1, "theory"):     f"{BASE_URL}/day1_belly.jpg",
+    (1, "exercises"):  f"{BASE_URL}/day1_bug_exercise.jpg",
+    (2, "theory"):     f"{BASE_URL}/day2_hormones.png",
+    (2, "exercises"):  f"{BASE_URL}/day2_tasks.png",
+    (3, "exercises"):  f"{BASE_URL}/day3_movement.png",
+    (5, "theory"):     f"{BASE_URL}/day5_leptin.png",
+    (6, "theory"):     f"{BASE_URL}/day6_timing.jpg",
+    (7, "theory"):     f"{BASE_URL}/day7_progress.jpg",
+    (8, "theory"):     f"{BASE_URL}/abc_model.png",
 }
 
 # ─── Токен бота (береться зі змінних середовища) ─────────────────────────────
@@ -849,7 +863,6 @@ async def smart_edit(query, text, reply_markup, parse_mode="Markdown"):
     """Редагує повідомлення незалежно від того фото це чи текст."""
     try:
         if query.message.photo or query.message.document:
-            # Це повідомлення з фото — редагуємо підпис
             await query.edit_message_caption(
                 caption=text,
                 parse_mode=parse_mode,
@@ -862,12 +875,32 @@ async def smart_edit(query, text, reply_markup, parse_mode="Markdown"):
                 reply_markup=reply_markup
             )
     except Exception:
-        # Якщо не вдалось — відправляємо нове повідомлення
         await query.message.reply_text(
             text,
             parse_mode=parse_mode,
             reply_markup=reply_markup
         )
+
+
+async def section_edit(query, day_num, section, text, reply_markup, parse_mode="Markdown"):
+    """Редагує розділ дня — якщо є картинка для розділу, замінює її."""
+    from telegram import InputMediaPhoto
+    photo_key = (day_num, section)
+    if photo_key in SECTION_PHOTOS:
+        try:
+            await query.edit_message_media(
+                media=InputMediaPhoto(
+                    media=SECTION_PHOTOS[photo_key],
+                    caption=text,
+                    parse_mode=parse_mode
+                ),
+                reply_markup=reply_markup
+            )
+            return
+        except Exception:
+            pass
+    # Немає картинки або не вдалось — просто редагуємо текст/підпис
+    await smart_edit(query, text, reply_markup, parse_mode)
 
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -968,9 +1001,8 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data_cb.startswith("theory_"):
         day_num = int(data_cb.split("_")[1])
         day = DAYS[day_num]
-        await smart_edit(query, 
+        await section_edit(query, day_num, "theory",
             day["theory"],
-            parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([[
                 InlineKeyboardButton("🔄 ABC →", callback_data=f"abc_{day_num}"),
                 InlineKeyboardButton("↩️ День", callback_data=f"start_day_{day_num}"),
@@ -994,9 +1026,8 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data_cb.startswith("exercises_"):
         day_num = int(data_cb.split("_")[1])
         day = DAYS[day_num]
-        await smart_edit(query, 
+        await section_edit(query, day_num, "exercises",
             day["exercises"],
-            parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([[
                 InlineKeyboardButton("💭 Рефлексія →", callback_data=f"reflection_{day_num}"),
                 InlineKeyboardButton("↩️ День", callback_data=f"start_day_{day_num}"),
@@ -1057,21 +1088,31 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Це час для практики і закріплення сьогоднішнього матеріалу 💪"
         )
 
-        await smart_edit(query, 
-            congrats,
-            parse_mode="Markdown",
-            reply_markup=after_complete_keyboard(day_num)
-        )
-
-        # Мемчик після завершення дня (як в оригінальному документі)
+        # Якщо є мемчик — замінюємо картинку зверху і оновлюємо підпис
         if day_num in DAY_COMPLETE_PHOTOS:
             try:
-                await context.bot.send_photo(
-                    chat_id=query.message.chat_id,
-                    photo=DAY_COMPLETE_PHOTOS[day_num]
+                from telegram import InputMediaPhoto
+                await query.edit_message_media(
+                    media=InputMediaPhoto(
+                        media=DAY_COMPLETE_PHOTOS[day_num],
+                        caption=congrats,
+                        parse_mode="Markdown"
+                    ),
+                    reply_markup=after_complete_keyboard(day_num)
                 )
             except Exception:
-                pass
+                # Якщо не вдалось замінити — просто редагуємо текст
+                await smart_edit(query,
+                    congrats,
+                    parse_mode="Markdown",
+                    reply_markup=after_complete_keyboard(day_num)
+                )
+        else:
+            await smart_edit(query,
+                congrats,
+                parse_mode="Markdown",
+                reply_markup=after_complete_keyboard(day_num)
+            )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
