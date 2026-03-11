@@ -14,6 +14,8 @@ from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler,
     MessageHandler, filters, ContextTypes
 )
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.jobstores.memory import MemoryJobStore
 
 # ─── Логування ────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -1096,6 +1098,10 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             user["day_start_times"][str(day_num)] = datetime.now().isoformat()
             save_data(db)
 
+            # Плануємо сповіщення про наступний день через 24 години
+            if day_num < 14:
+                schedule_next_day(context.bot, query.from_user.id, day_num)
+
         congrats = (
             "🎉 *Вітаємо з завершенням усієї програми!*\n\n"
             "Ти пройшов(ла) всі 14 днів! Це справжнє досягнення! 🏆\n\n"
@@ -1144,6 +1150,80 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 #  ЗАПУСК
 # ══════════════════════════════════════════════════════════════════════════════
 
+# ── Планувальник сповіщень ────────────────────────────────────────────────────
+scheduler = AsyncIOScheduler(jobstores={"default": MemoryJobStore()})
+
+
+async def send_day_notification(bot, chat_id: int, day_num: int):
+    """Надсилає сповіщення що наступний день відкрився."""
+    if day_num > 14:
+        return
+
+    db = load_data()
+    user = get_user(db, chat_id)
+
+    # Перевіряємо чи день справді доступний
+    accessible, _ = can_access_day(user, day_num)
+    if not accessible:
+        return
+
+    day = DAYS[day_num]
+
+    # Картинка для дня якщо є
+    photo_url = DAY_PHOTOS.get(day_num)
+    text = (
+        f"🔔 *День {day_num} відкрито!*\n\n"
+        f"*{day['title']}*\n\n"
+        f"🎯 {day['goal']}\n\n"
+        f"Натисни щоб розпочати 👇"
+    )
+    keyboard = InlineKeyboardMarkup([[
+        InlineKeyboardButton(f"🚀 Розпочати День {day_num}", callback_data=f"start_day_{day_num}")
+    ]])
+
+    try:
+        if photo_url:
+            await bot.send_photo(
+                chat_id=chat_id,
+                photo=photo_url,
+                caption=text,
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
+        else:
+            await bot.send_message(
+                chat_id=chat_id,
+                text=text,
+                parse_mode="Markdown",
+                reply_markup=keyboard
+            )
+    except Exception as e:
+        logger.error(f"Помилка надсилання сповіщення для {chat_id}: {e}")
+
+
+def schedule_next_day(bot, chat_id: int, completed_day: int):
+    """Планує сповіщення про відкриття наступного дня через 24 години."""
+    next_day = completed_day + 1
+    if next_day > 14:
+        return
+
+    run_time = datetime.now() + timedelta(hours=24)
+    job_id = f"notify_{chat_id}_day{next_day}"
+
+    # Видаляємо попереднє завдання якщо є
+    if scheduler.get_job(job_id):
+        scheduler.remove_job(job_id)
+
+    scheduler.add_job(
+        send_day_notification,
+        trigger="date",
+        run_date=run_time,
+        args=[bot, chat_id, next_day],
+        id=job_id
+    )
+    logger.info(f"Заплановано сповіщення для {chat_id} про День {next_day} на {run_time}")
+
+
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
 
@@ -1151,6 +1231,7 @@ def main():
     app.add_handler(CommandHandler("progress", cmd_progress))
     app.add_handler(CallbackQueryHandler(handle_callback))
 
+    scheduler.start()
     logger.info("Бот запущено!")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
