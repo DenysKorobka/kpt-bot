@@ -830,13 +830,11 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_photo(
             photo=DAY_PHOTOS["welcome"],
             caption="🌿 *КПТ-програма «Тренуй мислення — скидай вагу»*\n\nВітаємо на 14-денній програмі психології стрункості!\n\nПопереду — два тижні нового погляду на харчування, рух і стосунки з тілом. Жодних виснажливих дієт — лише кроки до мислення, яке підтримує здорові звички.\n\nМи навчимося помічати «пастки мислення» й замінювати їх на ті, що дають силу та свободу. 💚",
-            parse_mode="Markdown",
             reply_markup=main_menu_keyboard()
         )
     except Exception:
         await update.message.reply_text(
             "🌿 *КПТ-програма «Тренуй мислення — скидай вагу»*\n\nВітаємо на 14-денній програмі психології стрункості!\n\nПопереду — два тижні нового погляду на харчування, рух і стосунки з тілом. Жодних виснажливих дієт — лише кроки до мислення, яке підтримує здорові звички.\n\nМи навчимося помічати «пастки мислення» й замінювати їх на ті, що дають силу та свободу. 💚",
-            parse_mode="Markdown",
             reply_markup=main_menu_keyboard()
         )
 
@@ -923,7 +921,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if data_cb == "main_menu":
         await smart_edit(query, 
             "🌿 *Головне меню*\n\nОберіть що хочете зробити:",
-            parse_mode="Markdown",
             reply_markup=main_menu_keyboard()
         )
 
@@ -939,7 +936,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "📅 *Структура:* 14 днів, кожен наступний відкривається через 24 год після завершення попереднього.\n\n"
             "Кожен день містить:\n"
             "• 📖 Теорію\n• 🔄 Аналіз ABC\n• ✏️ Практичні завдання\n• 💭 Рефлексію\n• 💬 Речення підтримки",
-            parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([[
                 InlineKeyboardButton("🚀 Розпочати День 1", callback_data="start_day_1"),
                 InlineKeyboardButton("🏠 Меню", callback_data="main_menu"),
@@ -952,7 +948,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await smart_edit(query, 
             f"📋 *Всі 14 днів програми*\n\nЗавершено: {len(completed)}/14\n\n"
             "✅ — завершено  📅 — доступно  🔒 — поки недоступно",
-            parse_mode="Markdown",
             reply_markup=day_list_keyboard(user)
         )
 
@@ -964,7 +959,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not accessible:
             await smart_edit(query, 
                 f"🔒 *День {day_num} поки недоступний*\n\n{reason}",
-                parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup([[
                     InlineKeyboardButton("📋 Всі дні", callback_data="day_list"),
                     InlineKeyboardButton("🏠 Меню", callback_data="main_menu"),
@@ -1001,7 +995,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Якщо фото немає або не вдалось — просто текст
         await smart_edit(query, 
             caption,
-            parse_mode="Markdown",
             reply_markup=day_keyboard(day_num)
         )
 
@@ -1023,7 +1016,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         day = DAYS[day_num]
         await smart_edit(query, 
             day["abc"],
-            parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([[
                 InlineKeyboardButton("✏️ Практика →", callback_data=f"exercises_{day_num}"),
                 InlineKeyboardButton("↩️ День", callback_data=f"start_day_{day_num}"),
@@ -1048,7 +1040,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         day = DAYS[day_num]
         await smart_edit(query, 
             day["reflection"],
-            parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([[
                 InlineKeyboardButton("💬 Речення підтримки →", callback_data=f"quote_{day_num}"),
                 InlineKeyboardButton("↩️ День", callback_data=f"start_day_{day_num}"),
@@ -1061,7 +1052,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         day = DAYS[day_num]
         await smart_edit(query, 
             f"💬 *Речення підтримки*\n\n{day['quote']}",
-            parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([[
                 InlineKeyboardButton(f"✅ Завершити День {day_num}", callback_data=f"complete_{day_num}"),
                 InlineKeyboardButton("↩️ День", callback_data=f"start_day_{day_num}"),
